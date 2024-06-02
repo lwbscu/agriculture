@@ -386,7 +386,7 @@ void setup()
 {
 
   // Setup Serial connection:
-  Serial.begin(115200);
+  Serial.begin(115200);//串口
   delay(1000); // wait for a second to let Serial connect
 
 
