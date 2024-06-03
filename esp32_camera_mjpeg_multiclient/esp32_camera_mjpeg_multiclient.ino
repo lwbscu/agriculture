@@ -57,7 +57,13 @@
 */
 #include "home_wifi_multi.h"
 
+const IPAddress serverIP(47, 109, 192, 44); // 你的公网服务器IP地址  47, 109, 192, 44   //flag
+uint16_t serverPort = 8081; // 服务器端口号 (TCP协议)   8081      //flag
+
 OV2640 cam;
+WiFiClient client;
+
+const int maxcache = 1430; // Maximum chunk size to send at once
 
 WebServer server(80);
 
@@ -74,7 +80,7 @@ SemaphoreHandle_t frameSync = NULL;
 QueueHandle_t streamingClients;
 
 // We will try to achieve 25 FPS frame rate
-const int FPS = 30;
+const int FPS = 25;
 
 // We will handle web client requests every 50 ms (20 Hz)
 const int WSINTERVAL = 100;
@@ -437,19 +443,16 @@ void setup()
   IPAddress ip;
 
   WiFi.mode(WIFI_STA);
-  WiFi.begin("527", "11111111");//WIFI名称和密码
+  WiFi.begin("U NEED CRY DEAR", "12345678");//WIFI名称和密码   //flag
   Serial.print("Connecting to WiFi");
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
     Serial.print(F("."));
   }
-  ip = WiFi.localIP();
+
   Serial.println(F("WiFi connected"));
-  Serial.println("");
-  Serial.print("Stream Link: http://");
-  Serial.print(ip);
-  Serial.println("/mjpeg/1");
+
 
 
   // Start mainstreaming RTOS task
@@ -465,5 +468,41 @@ void setup()
 
 
 void loop() {
-  vTaskDelay(1000);
+  if (!client.connected()) {
+    Serial.println("Trying to connect to TCP server...");
+    if (client.connect(serverIP, serverPort)) {
+      Serial.println("Connected to TCP server");
+    } else {
+      Serial.println("Failed to connect to TCP server. Retrying in 10 seconds...");
+      delay(10000);
+      return;
+    }
+  }
+
+  camera_fb_t *fb = esp_camera_fb_get();
+  if (!fb) {
+    Serial.println("Camera capture failed");
+    return;
+  }
+
+  uint8_t *temp = fb->buf;
+  int len = fb->len;
+  int chunks = len / maxcache;
+  int remainder = len % maxcache;
+
+  client.println("Frame Begin");
+  for (int i = 0; i < chunks; ++i) {
+    client.write(fb->buf, maxcache);
+    fb->buf += maxcache;
+  }
+  client.write(fb->buf, remainder);
+  client.println("Frame Over");
+
+  Serial.print("Sent frame length: ");
+  Serial.println(len);
+
+  fb->buf = temp;
+  esp_camera_fb_return(fb);
+
+  delay(30); // Brief delay to increase data transmission reliability
 }
