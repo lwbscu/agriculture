@@ -24,22 +24,16 @@
 //任务〇(控制)
 TaskHandle_t Task0;
 
-//const char *ssid = "U NEED CRY DEAR";    //你的网络名称
-//const char *password = "12345678"; //你的网络密码
-
-//const char *ssid = "zeyun";    //你的网络名称
-//const char *password = "11235813"; //你的网络密码
-
-const char *ssid = "sci";    //你的网络名称
-const char *password = "ty123456bz"; //你的网络密码
+const char *ssid = "U NEED CRY DEAR";    //你的网络名称
+const char *password = "12345678"; //你的网络密码
 
 const int DHT_Pin=4;          //DHT传感器针脚
-const int FlumePin=39;         //培养槽水位传感器针脚
+const int FlumePin=19;         //培养槽水位传感器针脚
 //const int TankPin=41;          //水箱水位传感器
-const int BumpPin=15;          //水泵针脚
-const int LED_Pin=25;          //LED针脚
-const int WindowPin=32;        //天窗控制(舵机) 175->OFF;70->ON
-const int FanPin=12;            //风扇针脚
+const int BumpPin=17;          //水泵针脚
+const int LED_Pin=16;          //LED针脚
+const int WindowPin=25;        //天窗控制(舵机) 175->OFF;70->ON
+const int FanPin=26;            //风扇针脚
 
 
 
@@ -163,7 +157,6 @@ void setup()
 void Task0code(void * pvParameters){
 while(1){
 
-
 /*水泵控制*/
   switch(BumpState){
   /*由单片机控制水泵*/
@@ -207,8 +200,8 @@ while(1){
         Bump.flag==BumpInterval;
       }
       int currentHour = timeClient.getHours();
-       Serial.print("Hour:");
-       Serial.println(currentHour);
+      // Serial.print("Hour:");
+      // Serial.println(currentHour);
       int currentMinute = timeClient.getMinutes();
       // Serial.print("Hour:");
       // Serial.println(currentHour);
@@ -333,7 +326,9 @@ NextModule:
 
 void loop()
 {
+  Serial.print("loopbegin!");
 //设置GY-30为单次L分辨率模式
+  
   Wire.beginTransmission(ADDRESS_BH1750FVI);
   Wire.write(ONE_TIME_H_RESOLUTION_MODE);
   Wire.endTransmission();
@@ -379,10 +374,10 @@ void loop()
     SendData.WaterTank=1;
   }*/
 
-  //接收数据
+  Serial.print("httpbegin");
   HTTPClient http; // 声明HTTPClient对象
 
-  http.begin("http://192.168.16.9:8080/Control/In/Bump/State"); // 水泵操作模式 0->由单片机自主控制;1->手动控制;2->计划
+  http.begin("http-localhost:8080/Control/In/Bump/State"); // 水泵操作模式 0->由单片机自主控制;1->手动控制;2->计划
 
   int httpCode = http.GET(); // 发起GET请求
 
@@ -400,6 +395,8 @@ void loop()
   {
     Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
   }
+  http.end();
+  Serial.print("httpon");
 
   http.begin("http://192.168.16.9:8080/Control/In/Bump/Switch"); // 水泵开关(仅手动控制状态使用) 0->关闭;1->开启
   httpCode = http.GET(); // 发起GET请求
@@ -418,6 +415,7 @@ void loop()
   {
     Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
   }
+  http.end();
 
 
   http.begin("http://192.168.16.9:8080/Control/In/Bump/Time"); // 单次灌溉时长
@@ -437,6 +435,7 @@ void loop()
   {
     Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
   }
+  http.end();
 
 
   http.begin("http://192.168.16.9:8080/Control/In/Bump/StartTime"); // 每次的启动时间(24h)
@@ -456,6 +455,7 @@ void loop()
   {
     Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
   }
+  http.end();
 
   http.begin("http://192.168.16.9:8080/Control/In/Bump/Interval"); // 计划操作时,间隔时间(单位:ms)
   httpCode = http.GET(); // 发起GET请求
@@ -474,6 +474,10 @@ void loop()
   {
     Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
   }
+  http.end();
+  
+  
+
 
   http.begin("http://192.168.16.9:8080/Control/In/LED/State"); // LED操作模式 0->基于光强进行控制;1->手动控制
   httpCode = http.GET(); // 发起GET请求
@@ -492,6 +496,8 @@ void loop()
   {
     Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
   }
+  http.end();
+
 
  http.begin("http://192.168.16.9:8080/Control/In/LED/Switch"); // LED开关(仅手动控制状态使用) 0->关闭;1->开启
   httpCode = http.GET(); // 发起GET请求
@@ -510,6 +516,7 @@ void loop()
   {
     Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
   } 
+  http.end();
 
   http.begin("http://192.168.16.9:8080/Control/In/LED/Condition"); // 设定的开启标准(低于该值时开启)
    httpCode = http.GET(); // 发起GET请求
@@ -528,6 +535,8 @@ void loop()
   {
     Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
   } 
+  http.end();
+
 
 
   http.begin("http://192.168.16.9:8080/Control/In/Window/State"); // 天窗操作模式 1->基于温度进行控制;1->手动控制
@@ -547,6 +556,7 @@ void loop()
   {
     Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
   } 
+  http.end();
 
 
   http.begin("http://192.168.16.9:8080/Control/In/Window/Switch"); // 天窗开关(仅手动控制状态使用) 0->关闭;1->开启
@@ -566,6 +576,7 @@ void loop()
   {
     Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
   } 
+  http.end();
 
 
   http.begin("http://192.168.16.9:8080/Control/In/Window/Temperature"); // 设定的开启标准(高于此值时开启)
@@ -584,9 +595,10 @@ void loop()
   {
     Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
   } 
+  http.end();
 
 
-    //发送数据
+
     //int Flume = 2;
     //int tiandisId = 1;
     String url1 = "http://192.168.16.9:8080/Inside/Flume";
@@ -603,6 +615,7 @@ void loop()
         Serial.print("Error code: ");
         Serial.println(httpCode);
     }
+     http.end();
   
     //int  LightIntensity= 100;
     String url2 = "http://192.168.16.9:8080/Inside/LightIntensity";
@@ -619,6 +632,7 @@ void loop()
         Serial.print("Error code: ");
         Serial.println(httpCode);
     }
+    http.end();
 
     //int Temperature = 25;
     
@@ -636,7 +650,7 @@ void loop()
         Serial.print("Error code: ");
         Serial.println(httpCode);
     }
-
+     http.end();
     //int AirHumidity = 25;
     
     String url4 = "http://192.168.16.9:8080/Inside/AirHumidity";
@@ -659,8 +673,6 @@ void loop()
 
 ////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////
-//Serial.println(Temperature);
-delay(2000);
-
-
+Serial.println(Temperature);
+delay(5000);
 }
