@@ -20,6 +20,8 @@
  **************************/
 #define ADDRESS_BH1750FVI 0x23  
 #define ONE_TIME_H_RESOLUTION_MODE 0x20
+#define HTTPIP 192.168.16.16:8081
+Servo servo;
 
 //任务〇(控制)
 TaskHandle_t Task0;
@@ -289,14 +291,14 @@ NextModule:
       Window.AngleSet=70;
       if(Window.AngleNow>Window.AngleSet){
         Window.AngleNow--;
-        myServo.write(Window.AngleNow);
+        servo.write(Window.AngleNow);
       }
     }
     else{
       Window.AngleSet=175;
       if(Window.AngleNow<Window.AngleSet){
         Window.AngleNow++;
-        myServo.write(Window.AngleNow);
+        servo.write(Window.AngleNow);
       }
     }
     break;
@@ -308,7 +310,7 @@ NextModule:
       
       
         
-      myServo.write(Window.AngleSet);
+      servo.write(Window.AngleSet);
       Window.AngleNow = Window.AngleSet;
       windowangle = Window.AngleNow;
     }
@@ -317,7 +319,7 @@ NextModule:
       Window.AngleSet=175;
       if(Window.AngleNow<Window.AngleSet){
         Window.AngleNow++;
-        myServo.write(Window.AngleNow);
+        servo.write(Window.AngleNow);
       }
     }
     break;
@@ -411,7 +413,7 @@ void loop()
  
   HTTPClient http; // 声明HTTPClient对象
 
-  http.begin("http://192.168.16.14:8080/Control/In/Bump/State"); // 水泵操作模式 0->由单片机自主控制;1->手动控制;2->计划
+  http.begin("http://HTTPIP/Control/In/Bump/State"); // 水泵操作模式 0->由单片机自主控制;1->手动控制;2->计划
 
   int httpCode = http.GET(); // 发起GET请求
 
@@ -432,7 +434,7 @@ void loop()
   http.end();
   
 
-  http.begin("http://192.168.16.14:8080/Control/In/Bump/Switch"); // 水泵开关(仅手动控制状态使用) 0->关闭;1->开启
+  http.begin("http://HTTPIP/Control/In/Bump/Switch"); // 水泵开关(仅手动控制状态使用) 0->关闭;1->开启
   httpCode = http.GET(); // 发起GET请求
 
   if (httpCode > 0) // 如果状态码大于0说明请求过程无异常
@@ -452,7 +454,7 @@ void loop()
   http.end();
 
 
-  http.begin("http://192.168.16.14:8080/Control/In/Bump/Time"); // 单次灌溉时长
+  http.begin("http://HTTPIP/Control/In/Bump/Time"); // 单次灌溉时长
   httpCode = http.GET(); // 发起GET请求
 
   if (httpCode > 0) // 如果状态码大于0说明请求过程无异常
@@ -472,7 +474,7 @@ void loop()
   http.end();
 
 
-  http.begin("http://192.168.16.14:8080/Control/In/Bump/StartTime"); // 每次的启动时间(24h)
+  http.begin("http://HTTPIP/Control/In/Bump/StartTime"); // 每次的启动时间(24h)
   httpCode = http.GET(); // 发起GET请求
 
   if (httpCode > 0) // 如果状态码大于0说明请求过程无异常
@@ -491,7 +493,7 @@ void loop()
   }
   http.end();
 
-  http.begin("http://192.168.16.14:8080/Control/In/Bump/Interval"); // 计划操作时,间隔时间(单位:ms)
+  http.begin("http://HTTPIP/Control/In/Bump/Interval"); // 计划操作时,间隔时间(单位:ms)
   httpCode = http.GET(); // 发起GET请求
 
   if (httpCode > 0) // 如果状态码大于0说明请求过程无异常
@@ -513,7 +515,7 @@ void loop()
   
 
 
-  http.begin("http://192.168.16.14:8080/Control/In/LED/State"); // LED操作模式 0->基于光强进行控制;1->手动控制
+  http.begin("http://HTTPIP/Control/In/LED/State"); // LED操作模式 0->基于光强进行控制;1->手动控制
   httpCode = http.GET(); // 发起GET请求
 
   if (httpCode > 0) // 如果状态码大于0说明请求过程无异常
@@ -533,7 +535,7 @@ void loop()
   http.end();
 
 
- http.begin("http://192.168.16.14:8080/Control/In/LED/Switch"); // LED开关(仅手动控制状态使用) 0->关闭;1->开启
+ http.begin("http://HTTPIP/Control/In/LED/Switch"); // LED开关(仅手动控制状态使用) 0->关闭;1->开启
   httpCode = http.GET(); // 发起GET请求
 
   if (httpCode > 0) // 如果状态码大于0说明请求过程无异常
@@ -552,7 +554,7 @@ void loop()
   } 
   http.end();
 
-  http.begin("http://192.168.16.14:8080/Control/In/LED/Condition"); // 设定的开启标准(低于该值时开启)
+  http.begin("http://HTTPIP/Control/In/LED/Condition"); // 设定的开启标准(低于该值时开启)
    httpCode = http.GET(); // 发起GET请求
 
   if (httpCode > 0) // 如果状态码大于0说明请求过程无异常
@@ -573,7 +575,7 @@ void loop()
 
 
 
-  http.begin("http://192.168.16.14:8080/Control/In/Window/State"); // 天窗操作模式 1->基于温度进行控制;1->手动控制
+  http.begin("http://HTTPIP/Control/In/Window/State"); // 天窗操作模式 1->基于温度进行控制;1->手动控制
   httpCode = http.GET(); // 发起GET请求
 
   if (httpCode > 0) // 如果状态码大于0说明请求过程无异常
@@ -593,7 +595,7 @@ void loop()
   http.end();
 
 
-  http.begin("http://192.168.16.14:8080/Control/In/Window/Switch"); // 天窗开关(仅手动控制状态使用) 0->关闭;1->开启
+  http.begin("http://HTTPIP/Control/In/Window/Switch"); // 天窗开关(仅手动控制状态使用) 0->关闭;1->开启
   httpCode = http.GET(); // 发起GET请求
 
   if (httpCode > 0) // 如果状态码大于0说明请求过程无异常
@@ -613,7 +615,7 @@ void loop()
   http.end();
 
 
-  http.begin("http://192.168.16.14:8080/Control/In/Window/Temperature"); // 设定的开启标准(高于此值时开启)
+  http.begin("http://HTTPIP/Control/In/Window/Temperature"); // 设定的开启标准(高于此值时开启)
   httpCode = http.GET(); // 发起GET请求
   if (httpCode > 0) // 如果状态码大于0说明请求过程无异常
   {
@@ -635,7 +637,7 @@ void loop()
 
     //int Flume = 2;
     //int tiandisId = 1;
-    String url1 = "http://192.168.16.14:8080/Inside/Flume";
+    String url1 = "http://HTTPIP/Inside/Flume";
     http.begin(url1);
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
     String postData1 = "Flume=" + String(Flume) + "&tiandisId=" + String(tiandisId);
@@ -652,7 +654,7 @@ void loop()
      http.end();
   
     //int  LightIntensity= 100;
-    String url2 = "http://192.168.16.14:8080/Inside/LightIntensity";
+    String url2 = "http://HTTPIP/Inside/LightIntensity";
     http.begin(url2);
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
     String postData2 = "gzqiangdu=" + String(LightIntensity) + "&tiandisId=" + String(tiandisId);
@@ -670,7 +672,7 @@ void loop()
 
     //int Temperature = 25;
     
-    String url3 = "http://192.168.16.14:8080/Inside/Temperature";
+    String url3 = "http://HTTPIP/Inside/Temperature";
     http.begin(url3);
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
     String postData3 = "wendu=" + String(Temperature) + "&tiandisId=" + String(tiandisId);
@@ -687,7 +689,7 @@ void loop()
      http.end();
     //int AirHumidity = 25;
     
-    String url4 = "http://192.168.16.14:8080/Inside/AirHumidity";
+    String url4 = "http://HTTPIP/Inside/AirHumidity";
     http.begin(url4);
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
     String postData4 = "kongqishidu=" + String(AirHumidity) + "&tiandisId=" + String(tiandisId);
