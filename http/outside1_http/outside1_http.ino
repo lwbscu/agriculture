@@ -1,6 +1,6 @@
 /*************************************
  *3区-ESP32                          *
- *室外温湿度、降雨、气压、电池电压与电量*
+ *室外温湿度、降雨、气压、风扇、电池电压与电量*
  *愿意和我一辈子搞嵌入式吗?            *
  *************************************/
 #include <WiFi.h>
@@ -9,6 +9,8 @@
 #include <HTTPClient.h>
 #include <BMP280.h>
 #include <Adafruit_AHTX0.h>
+
+
 /*
 //初始化I2C引脚-第一个设备
 #define SDA_PIN_1 21
@@ -26,8 +28,8 @@ int AtomPre = 20 ;        //气压
 double Voltage;     //电池电压
 int BatteryLevel = 20 ;   //电池电量
 int tiandisId = 1;
-int FanState = 0;
-int FanSwitch = 1;
+int FanState = 2;
+int FanSwitch = 2;
 int FanTemperature = 20;
 
 
@@ -35,7 +37,7 @@ int FanTemperature = 20;
 //定义端口
 const int RainPin=4;           //降雨传感器
 const int VoltagePin=34;       //电池电压针脚
-const int FanPin=13;            //风扇针脚
+const int FanPin=17;            //风扇针脚
 
 
 //声明Aht20&Bmp20
@@ -117,8 +119,30 @@ inline void Connect(){
   pinMode(RainPin,INPUT);
   //初始化电压读取端口
   pinMode(VoltagePin,INPUT);
+  pinMode(FanPin,OUTPUT);
 }
 
+
+inline void Test(){
+  /*打印数据*/
+  Serial.print("温度:");
+  Serial.println(Temperature);
+  Serial.print("湿度:");
+  Serial.println(AirHumidity);
+  Serial.print("降雨:");
+  Serial.println(Rain);
+  Serial.print("气压:");
+  Serial.println(AtomPre);
+  Serial.print("电池电压:");
+  Serial.println(Voltage);
+  Serial.print("电池电量:");
+  Serial.println(BatteryLevel);
+  Serial.print("");
+  Serial.println(BatteryLevel);
+  int fanpin = digitalRead(FanPin);
+  Serial.print("fanpin=");
+  Serial.println(fanpin);
+}
 
 void setup()
 {
@@ -175,6 +199,8 @@ void loop()
   //读取电池电压数据并处理
   double V=analogRead(VoltagePin);
   VolGet(V);
+  
+
 
 
  //风扇控制
@@ -182,39 +208,37 @@ void loop()
    //基于温度开启
    case 0:
     //不低于设定温度时开启
+    Serial.println("success0");
     if(Temperature>=FanTemperature){
-      Fan.Set=1;
-      if(Fan.Set!=Fan.Now){
-        Fan.Now=1;
-        digitalWrite(FanPin,HIGH);
-      }
+     
+     digitalWrite(FanPin,LOW);
+      
     }
     else{
-      Fan.Set=0;
-      if(Fan.Set!=Fan.Now){
-        Fan.Now=0;
-        digitalWrite(FanPin,LOW);
-      }
+    
+    digitalWrite(FanPin,HIGH);
+    
     }
     break;
    //手动控制
    case 1:
     //风扇开
-    if(FanSwitch){
-      digitalWrite(FanPin,HIGH);
+    if(FanSwitch==1){
+      digitalWrite(FanPin,LOW);
+      Serial.println("success");
     }
     else{
-      digitalWrite(FanPin,LOW);
+      digitalWrite(FanPin,HIGH);
     }
     break;
   }
- 
+  
 
 
   //数据指令接收
   HTTPClient http; // 声明HTTPClient对象
   //////////
-  http.begin("http://192.168.16.8:8080/Control/In/Fan/State"); // 风扇操作模式 0->基于温度进行控制;1—>手动控制
+  http.begin("http://192.168.16.24:8080/Control/In/Fan/State"); // 风扇操作模式 0->基于温度进行控制;1—>手动控制
   int httpCode = http.GET(); // 发起GET请求
 
   if (httpCode > 0) // 如果状态码大于0说明请求过程无异常
@@ -223,8 +247,8 @@ void loop()
     {
       String FState = http.getString(); // 读取服务器返回的响应正文数据
       FanState = FState.toInt();
-      Serial.print("FState=");
-      Serial.println(FState);
+      Serial.print("FanState=");
+      Serial.println(FanState);
     }
   }
   else
@@ -233,7 +257,7 @@ void loop()
   }
 
   //////////
-  http.begin("http://192.168.16.9:8080/Control/In/Fan/Switch");  //风扇开关(仅手动控制状态使用) 0->关闭;1—>开启
+  http.begin("http://192.168.16.24:8080/Control/In/Fan/Switch");  //风扇开关(仅手动控制状态使用) 0->关闭;1—>开启
   httpCode = http.GET(); // 发起GET请求
 
   if (httpCode > 0) // 如果状态码大于0说明请求过程无异常
@@ -242,8 +266,8 @@ void loop()
     {
       String FSwitch = http.getString(); //设定的开启标准(高于此值时开启)
       FanSwitch = FSwitch.toInt();
-      Serial.print("FSwitch=");
-      Serial.println(FSwitch);
+      Serial.print("FanSwitch=");
+      Serial.println(FanSwitch);
     }
   }
   else
@@ -252,7 +276,7 @@ void loop()
   }
 
   ///////////
-  http.begin("http://192.168.16.9:8080/Control/In/Fan/Temperature"); // 单次灌溉时长
+  http.begin("http://192.168.16.24:8080/Control/In/Fan/Temperature"); // 单次灌溉时长
   httpCode = http.GET(); // 发起GET请求
 
   if (httpCode > 0) // 如果状态码大于0说明请求过程无异常
@@ -261,8 +285,8 @@ void loop()
     {
       String FTemperature = http.getString(); // 读取服务器返回的响应正文数据
       FanTemperature = FTemperature.toInt();
-      Serial.print("FTemperature=");
-      Serial.println(FTemperature);
+      Serial.print("FanTemperature=");
+      Serial.println(FanTemperature);
     }
   }
   else
@@ -272,7 +296,7 @@ void loop()
     
     /*发送数据部分*/
     /////////
-    String url1 = "http://192.168.16.8:8080/Outside/Temperature";
+    String url1 = "http://192.168.16.24:8080/Outside/Temperature";
     http.begin(url1);
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
     String postData1 = "wendu=" + String(Temperature) + "&tiandisId=" + String(tiandisId);
@@ -288,7 +312,7 @@ void loop()
     }
 
     //////////
-    String url2 = "http://192.168.16.8:8080/Outside/AirHumidity";
+    /*String url2 = "http://HTTPIP:8080/Outside/AirHumidity";
     http.begin(url2);
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
     String postData2 = "kongqishidu=" + String(AirHumidity) + "&tiandisId=" + String(tiandisId);
@@ -302,9 +326,9 @@ void loop()
         Serial.print("Error code: ");
         Serial.println(httpCode);
     }
-
+*/
     /////////
-    String url3 = "http://192.168.16.8:8080/Outside/AtomPre";
+    String url3 = "http://192.168.16.24:8080/Outside/AtomPre";
     http.begin(url3);
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
     String postData3 = "qiya=" + String(AtomPre) + "&tiandisId=" + String(tiandisId);
@@ -320,7 +344,7 @@ void loop()
     }
 
     /////////
-    String url4 = "http://192.168.16.8:8080/Outside/BatteryLevel";
+    String url4 = "http://192.168.16.24:8080/Outside/BatteryLevel";
     http.begin(url4);
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
     String postData4 = "dianchidianliang=" + String(BatteryLevel) + "&tiandisId=" + String(tiandisId);
@@ -336,7 +360,7 @@ void loop()
     }
 
     /////////
-    String url5 = "http://192.168.16.8:8080/Outside/Rain";
+    String url5 = "http://192.168.16.24:8080/Outside/Rain";
     http.begin(url5);
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
     String postData5 = "jiangyuliang=" + String(Rain) + "&tiandisId=" + String(tiandisId);
@@ -352,17 +376,6 @@ void loop()
     }
 
   http.end(); // 结束当前连接
-  Serial.print("温度:");
-  Serial.println(Temperature);
-  Serial.print("湿度:");
-  Serial.println(AirHumidity);
-  Serial.print("降雨:");
-  Serial.println(Rain);
-  Serial.print("气压:");
-  Serial.println(AtomPre);
-  Serial.print("电池电压:");
-  Serial.println(Voltage);
-  Serial.print("电池电量:");
-  Serial.println(BatteryLevel);
+  Test();
   delay(5000);
 }
